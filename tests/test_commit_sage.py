@@ -157,13 +157,13 @@ class TestInferScope:
 
 # ── Git Operations Tests ──────────────────────────────────────────────
 class TestGitAddAll:
-    @patch("commit_sage._run_git")
+    @patch("commit_sage.git_ops._run_git")
     def test_success(self, mock_run):
         from commit_sage import git_add_all
         git_add_all()
         mock_run.assert_called_once_with(["git", "add", "-A"])
 
-    @patch("commit_sage._run_git")
+    @patch("commit_sage.git_ops._run_git")
     def test_failure(self, mock_run):
         from commit_sage import git_add_all
         mock_run.side_effect = GitError("fail")
@@ -172,7 +172,7 @@ class TestGitAddAll:
 
 
 class TestGetGitDiff:
-    @patch("commit_sage._run_git")
+    @patch("commit_sage.git_ops._run_git")
     def test_staged(self, mock_run):
         mock_run.return_value = MagicMock(stdout="diff here")
         from commit_sage import get_git_diff
@@ -180,7 +180,7 @@ class TestGetGitDiff:
         assert result == "diff here"
         mock_run.assert_called_once_with(["git", "diff", "--cached"])
 
-    @patch("commit_sage._run_git")
+    @patch("commit_sage.git_ops._run_git")
     def test_unstaged(self, mock_run):
         mock_run.return_value = MagicMock(stdout="unstaged diff")
         from commit_sage import get_git_diff
@@ -190,21 +190,21 @@ class TestGetGitDiff:
 
 
 class TestRunGit:
-    @patch("subprocess.run")
+    @patch("commit_sage.git_ops.subprocess.run")
     def test_success(self, mock_run):
         mock_run.return_value = MagicMock(returncode=0, stdout="ok", stderr="")
         from commit_sage import _run_git
         result = _run_git(["git", "status"])
         assert result.stdout == "ok"
 
-    @patch("subprocess.run")
+    @patch("commit_sage.git_ops.subprocess.run")
     def test_called_process_error(self, mock_run):
         mock_run.side_effect = subprocess.CalledProcessError(1, "git", stderr="error msg")
         from commit_sage import _run_git
         with pytest.raises(GitError, match="error msg"):
             _run_git(["git", "status"])
 
-    @patch("subprocess.run")
+    @patch("commit_sage.git_ops.subprocess.run")
     def test_file_not_found(self, mock_run):
         mock_run.side_effect = FileNotFoundError("No git")
         from commit_sage import _run_git
@@ -214,7 +214,7 @@ class TestRunGit:
 
 # ── AI Provider Tests ─────────────────────────────────────────────────
 class TestOpenAIProvider:
-    @patch("commit_sage.requests.post")
+    @patch("commit_sage.providers.requests.post")
     def test_success(self, mock_post, monkeypatch):
         monkeypatch.setenv("API_KEY", "sk-test")
         from commit_sage import OpenAIProvider
@@ -233,7 +233,7 @@ class TestOpenAIProvider:
         assert msg == "feat: test commit"
         assert usage["total_tokens"] == 15
 
-    @patch("commit_sage.requests.post")
+    @patch("commit_sage.providers.requests.post")
     def test_auth_error_401(self, mock_post):
         from commit_sage import OpenAIProvider
         config = Config(api_key="bad-key", api_url="https://api.test/v1", model="test")
@@ -246,7 +246,7 @@ class TestOpenAIProvider:
         with pytest.raises(AIAuthError):
             provider.generate("diff")
 
-    @patch("commit_sage.requests.post")
+    @patch("commit_sage.providers.requests.post")
     def test_timeout(self, mock_post):
         import requests as req
         from commit_sage import OpenAIProvider
